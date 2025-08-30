@@ -19,6 +19,19 @@ exports.send = async (req, res) => {
   });
   await Chat.findByIdAndUpdate(chatId, { lastMessage: msg._id, updatedAt: new Date() });
   const populated = await Message.findById(msg._id).populate('sender', 'name avatarUrl');
+  
+  // Emit socket event to all users in the chat
+  const io = req.app.get('io'); // You need to set this up in your app.js
+  if (io) {
+    io.to(`chat:${chatId}`).emit('message:new', { message: populated });
+    
+    // Also notify all members personally (for notifications/unread)
+    const chat = await Chat.findById(chatId).select('members');
+    chat.members.forEach(memberId => {
+      io.to(`user:${memberId.toString()}`).emit('chat:updated', { chatId, lastMessage: populated });
+    });
+  }
+  
   res.status(201).json(populated);
 };
 

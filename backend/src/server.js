@@ -10,7 +10,9 @@ const PORT = process.env.PORT || 5001;
   await connectDB(process.env.MONGO_URI);
 
   const server = http.createServer(app);
-  createIO(server, process.env.FRONTEND_ORIGIN);
+  const io = createIO(server, process.env.FRONTEND_ORIGIN);
+  
+  app.set('io', io);
 
   server.listen(PORT, () => console.log(`🚀 Server on http://localhost:${PORT}`));
 })();
