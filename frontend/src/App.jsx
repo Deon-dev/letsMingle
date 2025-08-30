@@ -1,25 +1,32 @@
-import AppRoutes from './routes';
-import useNotifications from './hooks/useNotifications';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { setAuthTokenGetter } from './api/axios';
+import useStore from './store/useStore';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import ProtectedRoute from './components/protectedRoute';
+import Home from './pages/Home';
 
-export default function App() {
-  useNotifications();
-  const [online, setOnline] = useState(navigator.onLine);
+function App() {
+  const getAccessToken = useStore(state => state.getAccessToken);
+
   useEffect(() => {
-    const on = () => setOnline(true);
-    const off = () => setOnline(false);
-    window.addEventListener('online', on);
-    window.addEventListener('offline', off);
-    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
-  }, []);
+    setAuthTokenGetter(getAccessToken);
+  }, [getAccessToken]);
 
   return (
-    <div className="h-full">
-      {!online && (
-        <div className="bg-yellow-500 text-black text-center py-2">You are offline</div>
-      )}
-      <AppRoutes />
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/" element={
+          <ProtectedRoute>
+            <Home />
+          </ProtectedRoute>
+        } />
+      </Routes>
+    </Router>
   );
 }
 
+export default App;
