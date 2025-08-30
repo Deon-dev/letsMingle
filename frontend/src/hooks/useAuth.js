@@ -1,4 +1,4 @@
-// import { useEffect } from 'react';
+import { useEffect } from 'react';
 import api from '../api/axios';
 import useStore from '../store/useStore';
 
@@ -29,19 +29,19 @@ export default function useAuth() {
   };
 
   // Refresh token every ~50m
-  // useEffect(() => {
-  //   const run = async () => {
-  //     try {
-  //       await refresh();
-  //     } catch (err) {
-  //       console.error("Refresh failed:", err.message);
-  //     }
-  //   };
+  useEffect(() => {
+    const run = async () => {
+      try {
+        await refresh();
+      } catch (err) {
+        console.error("Refresh failed:", err.message);
+      }
+    };
 
-  //   run();
-  //   const id = setInterval(run, 50 * 60 * 1000);
-  //   return () => clearInterval(id);
-  // }, );
+    run();
+    const id = setInterval(run, 50 * 60 * 1000);
+    return () => clearInterval(id);
+  }, );
 
   return { user, accessToken, login, register, refresh, logout };
 }

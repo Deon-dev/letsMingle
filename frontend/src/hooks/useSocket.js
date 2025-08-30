@@ -13,7 +13,7 @@ export default function useSocket() {
     });
     socketRef.current = socket;
 
-    socket.on('presence:update', ({ userId, online }) => setPresence(userId, online));
+    // socket.on('presence:update', ({ userId, online }) => setPresence(userId, online));
 
     socket.on('message:new', ({ message }) => {
       addMessage(message.chat, message);

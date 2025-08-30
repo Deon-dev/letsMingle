@@ -1,45 +1,53 @@
-import { create } from "zustand";
+import { create } from 'zustand';
 
 const useStore = create((set) => ({
-  // --- Auth ---
+  user: null,
   accessToken: null,
-  setAccessToken: (token) => set({ accessToken: token }),
-
-  // --- Presence (online/offline) ---
-  presence: {},
-  setPresence: (userId, online) =>
-    set((state) => ({
-      presence: { ...state.presence, [userId]: online },
-    })),
-
-  // --- Typing indicators ---
-  typing: {},
-  addTyping: (chatId, userId) =>
-    set((state) => ({
-      typing: {
-        ...state.typing,
-        [chatId]: [...(state.typing[chatId] || []), userId],
-      },
-    })),
-  removeTyping: (chatId, userId) =>
-    set((state) => ({
-      typing: {
-        ...state.typing,
-        [chatId]: (state.typing[chatId] || []).filter((id) => id !== userId),
-      },
-    })),
-
-  // --- Messages ---
+  chats: [],
   messages: {},
-  addMessage: (chatId, message) =>
-    set((state) => ({
-      messages: {
-        ...state.messages,
-        [chatId]: [...(state.messages[chatId] || []), message],
-      },
-    })),
+  activeChatId: null,
+  onlineUsers: new Set(),
+  typing: {},
+
+  // --- Auth state setters ---
+  setUser: (user, accessToken = null) => set({ user, accessToken }),
+  setAccessToken: (accessToken) => set({ accessToken }),
+
+  // --- Chat state setters ---
+  setChats: (chats) => set({ chats }),
+  setMessages: (chatId, newMessages) =>
+    set((state) => {
+      const existingMessages = state.messages[chatId] || [];
+      // Merge new messages, keeping only unique _ids
+      const uniqueMessages = Array.from(
+        new Map(
+          [...existingMessages, ...(Array.isArray(newMessages) ? newMessages : [newMessages])]
+            .map((msg) => [msg._id, msg])
+        ).values()
+      );
+      return {
+        messages: {
+          ...state.messages,
+          [chatId]: uniqueMessages,
+        },
+      };
+    }),
+  setActiveChat: (chatId) => set({ activeChatId: chatId }),
+  setOnlineUsers: (users) => set({ onlineUsers: new Set(users) }),
+  setTyping: (chatId, userId, isTyping) =>
+    set((state) => {
+      const typingSet = state.typing[chatId] || new Set();
+      if (isTyping) typingSet.add(userId);
+      else typingSet.delete(userId);
+
+      return {
+        typing: {
+          ...state.typing,
+          [chatId]: typingSet,
+        },
+      };
+    }),
 }));
 
 export default useStore;
-
 

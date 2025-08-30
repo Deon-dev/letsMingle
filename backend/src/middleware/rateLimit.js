@@ -1,3 +1,4 @@
+// backend/middleware/rateLimit.js
 const rateLimit = require('express-rate-limit');
 
 // Strict for login/register (anti-bruteforce)
@@ -12,7 +13,7 @@ const loginLimiter = rateLimit({
 // Looser for refresh (since it's expected often)
 const refreshLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 30,             // 30 refreshes per minute per IP
+  max: process.env.NODE_ENV === "production" ? 30 : 300,
   standardHeaders: true,
   legacyHeaders: false
 });
@@ -26,3 +27,4 @@ const apiLimiter = rateLimit({
 });
 
 module.exports = { loginLimiter, refreshLimiter, apiLimiter };
+

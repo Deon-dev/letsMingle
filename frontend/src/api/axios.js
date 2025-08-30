@@ -31,6 +31,7 @@ api.interceptors.response.use(
   async error => {
     const originalRequest = error.config;
 
+    // Handle expired access token
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
@@ -48,9 +49,8 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // ✅ Ensure consistent API route
         const { data } = await axios.post(
-          `${import.meta.env.VITE_API_BASE}/api/auth/refresh`,
+          `${import.meta.env.VITE_API_BASE}/auth/refresh`,
           {},
           { withCredentials: true }
         );
@@ -77,6 +77,5 @@ api.interceptors.response.use(
 );
 
 export default api;
-
 
 

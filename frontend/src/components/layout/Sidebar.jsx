@@ -4,7 +4,15 @@ import useStore from '../../store/useStore';
 import Modal from '../ui/Modal';
 
 export default function Sidebar() {
-  const { chats, setChats, setActiveChat, activeChatId, onlineUsers } = useStore();
+  const {
+    chats,
+    setChats,
+    setActiveChat,
+    activeChatId,
+    onlineUsers,
+    currentUser, // 👈 make sure your store has this
+  } = useStore();
+
   const [q, setQ] = useState('');
   const [results, setResults] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -28,7 +36,10 @@ export default function Sidebar() {
   // Start DM with a user from search results
   const startDM = async (userId) => {
     try {
-      const { data } = await api.post('/api/chats', { isGroup: false, memberIds: [userId] });
+      const { data } = await api.post('/api/chats', {
+        isGroup: false,
+        memberIds: [userId],
+      });
       setChats((prev) => {
         if (prev.some((c) => c._id === data._id)) return prev;
         return [...prev, data];
@@ -91,12 +102,19 @@ export default function Sidebar() {
             >
               <div className="flex items-center justify-between">
                 <div className="font-medium line-clamp-1">
-                  {c.isGroup ? c.name : c.members?.map((m) => m.name).join(', ')}
+                  {c.isGroup
+                    ? c.name
+                    : currentUser
+                      ? c.members?.find((m) => m._id !== currentUser._id)?.name
+                      : 'Unknown'}
                 </div>
-                <div className="text-xs text-gray-500">{new Date(c.updatedAt).toLocaleTimeString()}</div>
+                <div className="text-xs text-gray-500">
+                  {new Date(c.updatedAt).toLocaleTimeString()}
+                </div>
               </div>
               <div className="text-sm text-gray-500 line-clamp-1">
-                {c.lastMessage?.text || (c.lastMessage?.imageUrl ? '📷 Image' : 'No messages')}
+                {c.lastMessage?.text ||
+                  (c.lastMessage?.imageUrl ? '📷 Image' : 'No messages')}
               </div>
             </button>
           ))}
@@ -122,6 +140,10 @@ export default function Sidebar() {
 
 function PresenceDot({ online }) {
   return (
-    <span className={`inline-block h-2.5 w-2.5 rounded-full ${online ? 'bg-green-500' : 'bg-gray-400'}`} />
+    <span
+      className={`inline-block h-2.5 w-2.5 rounded-full ${
+        online ? 'bg-green-500' : 'bg-gray-400'
+      }`}
+    />
   );
 }
