@@ -1,0 +1,17 @@
+2025/08/29 10:25:34 INFO  - jmeter.util.JMeterUtils: Setting Locale to en_US 
+2025/08/29 10:25:34 INFO  - jmeter.JMeter: Loading user properties from: /usr/share/jmeter/bin/user.properties 
+2025/08/29 10:25:34 INFO  - jmeter.JMeter: Loading system properties from: /usr/share/jmeter/bin/system.properties 
+2025/08/29 10:25:34 INFO  - jmeter.JMeter: Copyright (c) 1998-2015 The Apache Software Foundation 
+2025/08/29 10:25:34 INFO  - jmeter.JMeter: Version 2.13.19691222 
+2025/08/29 10:25:34 INFO  - jmeter.JMeter: java.version=21.0.8 
+2025/08/29 10:25:34 INFO  - jmeter.JMeter: java.vm.name=OpenJDK 64-Bit Server VM 
+2025/08/29 10:25:34 INFO  - jmeter.JMeter: os.name=Linux 
+2025/08/29 10:25:34 INFO  - jmeter.JMeter: os.arch=amd64 
+2025/08/29 10:25:34 INFO  - jmeter.JMeter: os.version=6.14.0-28-generic 
+2025/08/29 10:25:34 INFO  - jmeter.JMeter: file.encoding=UTF-8 
+2025/08/29 10:25:34 INFO  - jmeter.JMeter: Default Locale=English (United States) 
+2025/08/29 10:25:34 INFO  - jmeter.JMeter: JMeter  Locale=English (United States) 
+2025/08/29 10:25:34 INFO  - jmeter.JMeter: JMeterHome=/usr/share/jmeter 
+2025/08/29 10:25:34 INFO  - jmeter.JMeter: user.dir  =/home/hancho/Documents/gideon/letsMingle/backend 
+2025/08/29 10:25:34 INFO  - jmeter.JMeter: PWD       =/home/hancho/Documents/gideon/letsMingle/backend 
+2025/08/29 10:25:34 INFO  - jmeter.JMeter: IP: 127.0.1.1 Name: hancho-Latitude-7400 FullName: hancho-Latitude-7400 

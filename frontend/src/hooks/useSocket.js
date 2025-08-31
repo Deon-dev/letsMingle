@@ -3,36 +3,55 @@ import { io } from 'socket.io-client';
 import useStore from '../store/useStore';
 
 export default function useSocket() {
-  const { accessToken, setPresence, addMessage, removeTyping, addTyping } = useStore();
   const socketRef = useRef(null);
+  const { accessToken, updateOnlineUsers, setTyping, addMessage, updateChatLastMessage } = useStore();
 
   useEffect(() => {
     if (!accessToken) return;
-    const socket = io(import.meta.env.VITE_SOCKET_URL, {
-      auth: { token: accessToken }
-    });
-    socketRef.current = socket;
 
-    // socket.on('presence:update', ({ userId, online }) => setPresence(userId, online));
+    // Connect to socket
+    socketRef.current = io(import.meta.env.VITE_API_BASE, {
+      auth: { token: accessToken },
+      transports: ['websocket', 'polling']
+    });
+
+    const socket = socketRef.current;
+
+    // Set up event listeners
+    socket.on('connect', () => {
+      console.log('Connected to server');
+    });
+
+    socket.on('disconnect', () => {
+      console.log('Disconnected from server');
+    });
+
+    socket.on('presence:update', ({ userId, online }) => {
+      updateOnlineUsers(userId, online);
+    });
+
+    socket.on('typing', ({ chatId, userId }) => {
+      setTyping(chatId, userId, true);
+    });
+
+    socket.on('stop_typing', ({ chatId, userId }) => {
+      setTyping(chatId, userId, false);
+    });
 
     socket.on('message:new', ({ message }) => {
+      // Add message regardless of active chat (for notifications)
       addMessage(message.chat, message);
-
-      // desktop notification (if granted)
-      if (Notification.permission === 'granted') {
-        new Notification((message.sender?.name || 'New message'), {
-          body: message.text || 'Image',
-          tag: message.chat
-        });
-      }
     });
 
-    socket.on('typing', ({ chatId, userId }) => addTyping(chatId, userId));
-    socket.on('stop_typing', ({ chatId, userId }) => removeTyping(chatId, userId));
-    socket.on('message:read', () => {/* UI can update read receipts if stored */});
+    socket.on('message:read', ({ chatId, userId, messageIds }) => {
+      // Handle read receipts if needed
+      console.log('Messages read:', { chatId, userId, messageIds });
+    });
 
-    return () => socket.disconnect();
-  }, [accessToken, setPresence, addMessage, removeTyping, addTyping]);
+    return () => {
+      socket.disconnect();
+    };
+  }, [accessToken, updateOnlineUsers, setTyping, addMessage, updateChatLastMessage]);
 
   return socketRef;
 }

@@ -10,6 +10,7 @@ export default function Register() {
   const [err, setErr] = useState('');
 
   const submit = async (e) => {
+    console.log(form);
     e.preventDefault();
     setErr(''); setLoading(true);
     try { await register(form.name, form.email, form.password); nav('/'); }

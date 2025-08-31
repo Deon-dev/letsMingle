@@ -4,7 +4,7 @@ import useSocket from '../hooks/useSocket';
 import useStore from '../store/useStore';
 
 export default function Home() {
-  useSocket(); // initialize socket
+  useSocket(); 
   const { activeChatId } = useStore();
   return (
     <div className="h-full grid md:grid-cols-[320px_1fr]">

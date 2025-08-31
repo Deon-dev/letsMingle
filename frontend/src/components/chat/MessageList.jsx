@@ -1,49 +1,88 @@
-import { useEffect, useRef } from 'react';
-import { AnimatePresence, motion } from 'framer-motion'; // Ensure motion is imported
-import useStore from '../../store/useStore';
-import TypingIndicator from './TypingIndicator';
+import { useEffect, useRef } from "react";
+import useAuth from "../../hooks/useAuth"; // ✅ fixed import
 
-export default function MessageList() {
-  const { activeChatId, messages, user, typing } = useStore();
-  const listRef = useRef(null);
-  const msgs = messages[activeChatId] || [];
-  const typingSet = typing[activeChatId] || new Set();
+export default function MessageList({ messages = [] }) {
+  const { user } = useAuth();
+  const bottomRef = useRef(null);
 
-  // Log to verify motion import
-  console.log('MessageList.jsx loaded, motion:', typeof motion);
-
+  // Auto scroll to bottom when new messages arrive
   useEffect(() => {
-    listRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
-  }, [msgs.length, typingSet.size]);
+    if (bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
+
+  if (!Array.isArray(messages)) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-gray-500">
+        No messages yet
+      </div>
+    );
+  }
 
   return (
-    <div className="overflow-y-auto p-3 space-y-2" ref={listRef}>
-      <AnimatePresence initial={false}>
-        {msgs.map((m) => {
-          const mine = m.sender?._id === user?._id || m.sender === user?._id;
-          const readByCount = (m.readBy || []).length;
-          return (
-            <motion.div
-              key={m._id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className={`max-w-[75%] ${mine ? 'ml-auto' : ''}`}
-            >
-              <div className={`p-2 rounded-lg ${mine ? 'bg-brand-500 text-white' : 'bg-gray-100 dark:bg-gray-800'}`}>
-                {m.imageUrl && <img src={import.meta.env.VITE_API_BASE + m.imageUrl} className="rounded mb-1 max-h-64" />}
-                {m.text && <div className="whitespace-pre-wrap">{m.text}</div>}
-              </div>
-              <div className="text-[10px] text-gray-500 mt-1 flex items-center gap-2">
-                <span>{new Date(m.createdAt).toLocaleTimeString()}</span>
-                {mine && <span>{readByCount > 1 ? '✓✓ Read' : '✓ Sent'}</span>}
-              </div>
-            </motion.div>
-          );
-        })}
-      </AnimatePresence>
+    <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+      {messages.length === 0 ? (
+        <p className="text-gray-400 text-sm text-center">No messages yet</p>
+      ) : (
+        messages.map((msg) => {
+          const isOwn = msg.sender?._id === user?._id;
 
-      {typingSet.size > 0 && <TypingIndicator names={[...typingSet].length + ' typing...'} />}
+          return (
+            <div
+              key={msg._id}
+              className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
+            >
+              <div
+                className={`max-w-xs md:max-w-sm lg:max-w-md p-3 rounded-2xl shadow 
+                ${isOwn ? "bg-blue-500 text-white" : "bg-white text-gray-800"}`}
+              >
+                {/* Sender name (only show for others) */}
+                {!isOwn && (
+                  <p className="text-xs font-semibold text-gray-600 mb-1">
+                    {msg.sender?.name || "Unknown"}
+                  </p>
+                )}
+
+                {/* Text */}
+                {msg.text && (
+                  <p className="whitespace-pre-wrap">{msg.text}</p>
+                )}
+
+                {/* Image */}
+                {msg.imageUrl && (
+                  <img
+                    src={msg.imageUrl}
+                    alt="attachment"
+                    className="mt-2 rounded-lg max-h-60 object-cover"
+                  />
+                )}
+
+                {/* Time */}
+                {msg.createdAt && (
+                  <p
+                    className={`text-[10px] mt-1 ${
+                      isOwn ? "text-blue-100" : "text-gray-400"
+                    }`}
+                  >
+                    {new Date(msg.createdAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+        })
+      )}
+
+      {/* Scroll anchor */}
+      <div ref={bottomRef} />
     </div>
   );
 }
+
+
+
+
