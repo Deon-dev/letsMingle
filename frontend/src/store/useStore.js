@@ -14,9 +14,22 @@ const useStore = create(
       messages: {}, // { chatId: [messages] }
       onlineUsers: new Map(),
       typing: {}, // { chatId: Set(userIds) }
+      unreadCounts: {}, // { chatId: number }
       
       // Auth actions
       setUser: (user, token) => {
+        const prevUser = get().user;
+        if (!prevUser || prevUser._id !== user?._id) {
+          set({
+            chats: [],
+            activeChatId: null,
+            messages: {},
+            onlineUsers: new Map(),
+            typing: {},
+            unreadCounts: {}
+          });
+        }
+
         set({ user, accessToken: token });
         if (token) {
           localStorage.setItem('accessToken', token);
@@ -44,7 +57,8 @@ const useStore = create(
           activeChatId: null,
           messages: {},
           onlineUsers: new Map(),
-          typing: {}
+          typing: {},
+          unreadCounts: {}
         });
         localStorage.removeItem('accessToken');
       },
@@ -59,10 +73,8 @@ const useStore = create(
       },
       
       addChat: (newChat) => set(state => {
-        // Check if chat already exists to prevent duplicates
         const chatExists = state.chats.some(chat => chat._id === newChat._id);
         if (chatExists) return state;
-        
         return { chats: [newChat, ...state.chats] };
       }),
 
@@ -77,10 +89,13 @@ const useStore = create(
           chat._id === chatId 
             ? { ...chat, lastMessage: message, updatedAt: new Date() }
             : chat
-        ).sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)) // Sort by most recent
+        ).sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
       })),
       
-      setActiveChatId: (chatId) => set({ activeChatId: chatId }),
+      setActiveChatId: (chatId) => {
+        set({ activeChatId: chatId });
+        get().clearUnread(chatId); // 🔴 Clear unread on open
+      },
       
       setMessages: (chatId, messageList) => set(state => ({
         messages: { ...state.messages, [chatId]: messageList }
@@ -88,7 +103,8 @@ const useStore = create(
       
       addMessage: (chatId, message) => set(state => {
         const currentMessages = state.messages[chatId] || [];
-        // Check if message already exists to prevent duplicates
+        if (!Array.isArray(currentMessages)) return state;
+
         const messageExists = currentMessages.some(msg => msg._id === message._id);
         if (messageExists) return state;
         
@@ -123,7 +139,21 @@ const useStore = create(
           }
         }
         return { typing: newTyping };
-      })
+      }),
+
+      // 🔴 Unread counters
+      incrementUnread: (chatId) => set(state => ({
+        unreadCounts: {
+          ...state.unreadCounts,
+          [chatId]: (state.unreadCounts[chatId] || 0) + 1
+        }
+      })),
+
+      clearUnread: (chatId) => set(state => {
+        const newUnread = { ...state.unreadCounts };
+        delete newUnread[chatId];
+        return { unreadCounts: newUnread };
+      }),
     }),
     {
       name: 'auth-storage',
@@ -136,3 +166,5 @@ const useStore = create(
 );
 
 export default useStore;
+
+

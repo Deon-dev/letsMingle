@@ -5,7 +5,9 @@ import api from '../../api/axios';
 import GroupCreator from '../chat/GroupCreator';
 
 export default function Sidebar() {
-  const { user, chats, setChats, activeChatId, setActiveChatId, addChat } = useStore();
+  const { 
+    user, chats, setChats, activeChatId, setActiveChatId, addChat, unreadCounts 
+  } = useStore();
   const { logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -53,7 +55,7 @@ export default function Sidebar() {
   const startChat = async (selectedUser) => {
     setLoading(true);
     try {
-      // Check if chat already exists with this user (more thorough check)
+      // Check if chat already exists
       const existingChat = chats.find(chat => 
         !chat.isGroup && 
         chat.members.length === 2 &&
@@ -74,9 +76,7 @@ export default function Sidebar() {
         memberIds: [selectedUser._id],
       });
 
-      // Check if chat already exists in the list before adding
-      const chatExists = chats.some(chat => chat._id === data._id);
-      if (!chatExists) {
+      if (!chats.some(chat => chat._id === data._id)) {
         addChat(data);
       }
 
@@ -93,8 +93,6 @@ export default function Sidebar() {
   const formatLastMessage = (chat) => {
     if (!chat.lastMessage) return 'No messages yet';
     const msg = chat.lastMessage;
-    
-    // Handle both populated and non-populated lastMessage
     const text = typeof msg === 'string' ? '' : (msg.text || '');
     const imageUrl = typeof msg === 'string' ? '' : (msg.imageUrl || '');
     
@@ -158,9 +156,8 @@ export default function Sidebar() {
           </div>
         </div>
 
-        {/* Search and Actions */}
+        {/* Search + Actions */}
         <div className="p-4 border-b dark:border-gray-800 space-y-3">
-          {/* Create Group Button */}
           <button
             onClick={() => setShowGroupCreator(true)}
             className="w-full py-2 px-3 bg-brand-500 text-white rounded-lg hover:opacity-90 text-sm font-medium flex items-center justify-center gap-2"
@@ -247,9 +244,16 @@ export default function Sidebar() {
                         {formatTime(chat.updatedAt)}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500 truncate">
-                      {formatLastMessage(chat)}
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-gray-500 truncate">
+                        {formatLastMessage(chat)}
+                      </p>
+                      {unreadCounts[chat._id] > 0 && (
+                        <span className="ml-2 bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">
+                          {unreadCounts[chat._id]}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </button>
@@ -263,7 +267,7 @@ export default function Sidebar() {
         <GroupCreator
           onClose={() => setShowGroupCreator(false)}
           onGroupCreated={(group) => {
-            console.log('Group created:', group);
+            addChat(group);
             setShowGroupCreator(false);
           }}
         />
@@ -271,3 +275,4 @@ export default function Sidebar() {
     </>
   );
 }
+

@@ -5,7 +5,7 @@ import useSocket from '../../hooks/useSocket';
 import Picker from 'emoji-picker-react';
 
 export default function MessageInput() {
-  const { activeChatId, addMessage } = useStore();
+  const { activeChatId } = useStore();
   const socketRef = useSocket();
   const [text, setText] = useState('');
   const [showPicker, setShowPicker] = useState(false);
@@ -13,7 +13,11 @@ export default function MessageInput() {
   const [sending, setSending] = useState(false);
   const fileRef = useRef();
 
-  useEffect(() => { setText(''); }, [activeChatId]);
+  // Reset input when switching chats
+  useEffect(() => {
+    setText('');
+    setShowPicker(false);
+  }, [activeChatId]);
 
   const send = async () => {
     if ((!text || !text.trim()) && !fileRef.current?.files?.length) return;
@@ -37,13 +41,10 @@ export default function MessageInput() {
 
       const payload = { chatId: activeChatId, text: text.trim(), imageUrl };
       
-      // Only send via REST API, not socket (socket will handle the broadcast)
-      const { data } = await api.post('/api/messages', payload);
+      // Only send via REST API — socket will broadcast the new message
+      await api.post('/api/messages', payload);
       
-      // Don't add message manually here - let socket handle it to avoid duplicates
-      // addMessage(activeChatId, data);
-      
-      // Clear input
+      // Reset input
       setText('');
       setShowPicker(false);
       
@@ -58,25 +59,30 @@ export default function MessageInput() {
     socketRef.current?.emit('typing', { chatId: activeChatId });
     // stop-typing after 2s of no input
     if (onType.timer) clearTimeout(onType.timer);
-    onType.timer = setTimeout(() => socketRef.current?.emit('stop_typing', { chatId: activeChatId }), 2000);
+    onType.timer = setTimeout(
+      () => socketRef.current?.emit('stop_typing', { chatId: activeChatId }),
+      2000
+    );
   };
 
   return (
     <div className="p-3 border-t dark:border-gray-800">
       <div className="flex items-end gap-2">
+        {/* Emoji picker toggle */}
         <button 
-          onClick={() => setShowPicker(v=>!v)} 
+          onClick={() => setShowPicker(v => !v)} 
           className="px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
           disabled={sending}
         >
           😊
         </button>
+
+        {/* File upload */}
         <input 
           type="file" 
           accept="image/*" 
           ref={fileRef} 
           className="hidden" 
-          onChange={()=>{}} 
         />
         <button 
           onClick={() => fileRef.current?.click()} 
@@ -85,6 +91,8 @@ export default function MessageInput() {
         >
           📎
         </button>
+
+        {/* Text input */}
         <textarea
           className="flex-1 input h-10 resize-none"
           placeholder="Type a message"
@@ -98,6 +106,8 @@ export default function MessageInput() {
           }}
           disabled={sending}
         />
+
+        {/* Send button */}
         <button 
           onClick={send} 
           className="btn"
@@ -106,9 +116,13 @@ export default function MessageInput() {
           {uploading ? '📤' : sending ? '...' : 'Send'}
         </button>
       </div>
+
+      {/* Emoji picker */}
       {showPicker && (
         <div className="mt-2">
-          <Picker onEmojiClick={(_, e) => setText(t => t + e.emoji)} />
+          <Picker 
+            onEmojiClick={(emojiData) => setText(t => t + emojiData.emoji)} 
+          />
         </div>
       )}
     </div>

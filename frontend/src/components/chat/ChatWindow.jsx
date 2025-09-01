@@ -7,7 +7,7 @@ import useSocket from "../../hooks/useSocket";
 import { MoreVertical } from "lucide-react";
 
 export default function ChatWindow() {
-  const { activeChatId, messages, setMessages, user } = useStore();
+  const { activeChatId, messages, setMessages, addMessage, user, typing } = useStore();
   const socketRef = useSocket();
 
   // Fetch messages when chat changes
@@ -21,7 +21,6 @@ export default function ChatWindow() {
       })
       .catch((error) => console.error("Failed to load messages:", error));
 
-    // Join socket room
     const socket = socketRef.current;
     if (socket) {
       socket.emit("chat:join", { chatId: activeChatId });
@@ -39,12 +38,7 @@ export default function ChatWindow() {
 
     const handleNewMessage = ({ message }) => {
       if (message.chat === activeChatId || message.chat?._id === activeChatId) {
-        setMessages(activeChatId, prevMsgs => {
-          // Prevent duplicate messages
-          const alreadyExists = prevMsgs.some(m => m._id === message._id);
-          if (alreadyExists) return prevMsgs;
-          return [...prevMsgs, message];
-        });
+        addMessage(activeChatId, message);
       }
     };
 
@@ -53,8 +47,7 @@ export default function ChatWindow() {
     return () => {
       socket.off("message:new", handleNewMessage);
     };
-  }, [activeChatId, setMessages, socketRef]);
-
+  }, [activeChatId, addMessage, socketRef]);
 
   // Mark messages as read
   useEffect(() => {
@@ -83,11 +76,23 @@ export default function ChatWindow() {
     );
   }
 
+  const typingUsers = typing[activeChatId]
+    ? [...typing[activeChatId]].filter(id => id !== user?._id)
+    : [];
+
   return (
     <div className="h-full grid grid-rows-[auto_1fr_auto]">
       <Header />
-      {/* ✅ Pass down messages */}
-      <MessageList messages={messages[activeChatId] || []} />
+      <div className="relative">
+        <MessageList messages={messages[activeChatId] || []} />
+        {typingUsers.length > 0 && (
+          <div className="absolute bottom-2 left-4 text-xs text-gray-500 italic">
+            {typingUsers.length === 1
+              ? "Typing..."
+              : "Multiple people typing..."}
+          </div>
+        )}
+      </div>
       <MessageInput />
     </div>
   );
@@ -100,7 +105,6 @@ function Header() {
   const chat = chats.find((c) => c._id === activeChatId);
 
   useEffect(() => {
-    // Close menu when switching chats
     setMenuOpen(false);
   }, [activeChatId]);
 
@@ -167,6 +171,9 @@ function Header() {
     </div>
   );
 }
+
+
+
 
 
 

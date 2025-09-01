@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import useAuth from "../../hooks/useAuth"; // ✅ fixed import
+import useAuth from "../../hooks/useAuth";
 
 export default function MessageList({ messages = [] }) {
   const { user } = useAuth();
@@ -21,7 +21,7 @@ export default function MessageList({ messages = [] }) {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+    <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 dark:bg-gray-900">
       {messages.length === 0 ? (
         <p className="text-gray-400 text-sm text-center">No messages yet</p>
       ) : (
@@ -31,22 +31,42 @@ export default function MessageList({ messages = [] }) {
           return (
             <div
               key={msg._id}
-              className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
+              className={`flex items-end gap-2 ${
+                isOwn ? "justify-end" : "justify-start"
+              }`}
             >
+              {/* Show avatar only for other users */}
+              {!isOwn && (
+                <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-sm font-semibold overflow-hidden">
+                  {msg.sender?.avatarUrl ? (
+                    <img
+                      src={msg.sender.avatarUrl}
+                      alt={msg.sender?.name || "User"}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    msg.sender?.name?.[0]?.toUpperCase() || "?"
+                  )}
+                </div>
+              )}
+
               <div
-                className={`max-w-xs md:max-w-sm lg:max-w-md p-3 rounded-2xl shadow 
-                ${isOwn ? "bg-blue-500 text-white" : "bg-white text-gray-800"}`}
+                className={`max-w-xs md:max-w-sm lg:max-w-md p-3 rounded-2xl shadow relative ${
+                  isOwn
+                    ? "bg-blue-500 text-white"
+                    : "bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100"
+                }`}
               >
                 {/* Sender name (only show for others) */}
                 {!isOwn && (
-                  <p className="text-xs font-semibold text-gray-600 mb-1">
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">
                     {msg.sender?.name || "Unknown"}
                   </p>
                 )}
 
                 {/* Text */}
                 {msg.text && (
-                  <p className="whitespace-pre-wrap">{msg.text}</p>
+                  <p className="whitespace-pre-wrap break-words">{msg.text}</p>
                 )}
 
                 {/* Image */}
@@ -72,6 +92,9 @@ export default function MessageList({ messages = [] }) {
                   </p>
                 )}
               </div>
+
+              {/* Keep space on the right for my own avatar (optional) */}
+              {isOwn && <div className="w-8 h-8" />}
             </div>
           );
         })
@@ -82,6 +105,8 @@ export default function MessageList({ messages = [] }) {
     </div>
   );
 }
+
+
 
 
 

@@ -4,8 +4,18 @@ const Chat = require('../models/Chat');
 exports.listByChat = async (req, res) => {
   try {
     const { chatId } = req.params;
+
+    // ✅ Check membership
+    const chat = await Chat.findById(chatId).select('members');
+    if (!chat) return res.status(404).json({ error: "Chat not found" });
+
+    const isMember = chat.members.some(m => m.toString() === req.user._id.toString());
+    if (!isMember) {
+      return res.status(403).json({ error: "You are not a member of this chat" });
+    }
+
     const msgs = await Message.find({ chat: chatId })
-      .populate('sender', '_id name avatarUrl') // include _id so frontend can check mine/theirs
+      .populate('sender', '_id name avatarUrl')
       .sort({ createdAt: 1 });
 
     res.json(msgs);
@@ -19,6 +29,15 @@ exports.send = async (req, res) => {
   try {
     const { chatId, text, imageUrl } = req.body;
 
+    // ✅ Check membership
+    const chat = await Chat.findById(chatId).select('members');
+    if (!chat) return res.status(404).json({ error: "Chat not found" });
+
+    const isMember = chat.members.some(m => m.toString() === req.user._id.toString());
+    if (!isMember) {
+      return res.status(403).json({ error: "You are not a member of this chat" });
+    }
+
     const msg = await Message.create({
       chat: chatId,
       sender: req.user._id,
@@ -27,10 +46,9 @@ exports.send = async (req, res) => {
     });
 
     // update chat lastMessage + updatedAt
-    await Chat.findByIdAndUpdate(chatId, {
-      lastMessage: msg._id,
-      updatedAt: new Date()
-    });
+    chat.lastMessage = msg._id;
+    chat.updatedAt = new Date();
+    await chat.save();
 
     // repopulate so frontend gets sender details
     const populated = await Message.findById(msg._id)
@@ -41,16 +59,13 @@ exports.send = async (req, res) => {
     if (io) {
       io.to(`chat:${chatId}`).emit('message:new', { message: populated });
 
-      // Also notify all chat members (for sidebar updates, unread, etc.)
-      const chat = await Chat.findById(chatId).select('members');
-      if (chat && chat.members) {
-        chat.members.forEach(memberId => {
-          io.to(`user:${memberId.toString()}`).emit('chat:updated', {
-            chatId,
-            lastMessage: populated
-          });
+      // Notify all chat members (sidebar updates, unread counts, etc.)
+      chat.members.forEach(memberId => {
+        io.to(`user:${memberId.toString()}`).emit('chat:updated', {
+          chatId,
+          lastMessage: populated
         });
-      }
+      });
     }
 
     res.status(201).json(populated);
@@ -63,7 +78,16 @@ exports.send = async (req, res) => {
 exports.markRead = async (req, res) => {
   try {
     const { chatId } = req.params;
-    const { messageIds } = req.body; // array of ids
+    const { messageIds } = req.body;
+
+    // ✅ Check membership
+    const chat = await Chat.findById(chatId).select('members');
+    if (!chat) return res.status(404).json({ error: "Chat not found" });
+
+    const isMember = chat.members.some(m => m.toString() === req.user._id.toString());
+    if (!isMember) {
+      return res.status(403).json({ error: "You are not a member of this chat" });
+    }
 
     await Message.updateMany(
       {
@@ -82,3 +106,4 @@ exports.markRead = async (req, res) => {
     res.status(500).json({ error: "Failed to mark messages as read" });
   }
 };
+
