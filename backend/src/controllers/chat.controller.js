@@ -19,6 +19,15 @@ exports.createChat = async (req, res) => {
     admins: [req.user._id]
   });
   const populated = await Chat.findById(chat._id).populate('members', 'name avatarUrl');
+  
+  // Notify all members about the new chat via socket
+  const io = req.app.get('io');
+  if (io) {
+    members.forEach(memberId => {
+      io.to(`user:${memberId}`).emit('chat:new', { chat: populated });
+    });
+  }
+  
   res.status(201).json(populated);
 };
 
@@ -27,5 +36,14 @@ exports.addMembers = async (req, res) => {
   const { memberIds } = req.body;
   const chat = await Chat.findByIdAndUpdate(chatId, { $addToSet: { members: { $each: memberIds } } }, { new: true })
     .populate('members', 'name avatarUrl');
+  
+  // Notify all members (including new ones) about the updated chat
+  const io = req.app.get('io');
+  if (io) {
+    chat.members.forEach(member => {
+      io.to(`user:${member._id.toString()}`).emit('chat:updated', { chat });
+    });
+  }
+  
   res.json(chat);
 };

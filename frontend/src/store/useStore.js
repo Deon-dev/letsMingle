@@ -50,41 +50,45 @@ const useStore = create(
       },
 
       // Chat actions
-      setChats: (chats) => set({ chats }),
+      setChats: (chatsOrUpdater) => {
+        if (typeof chatsOrUpdater === 'function') {
+          set(state => ({ chats: chatsOrUpdater(state.chats) }));
+        } else {
+          set({ chats: chatsOrUpdater });
+        }
+      },
       
       addChat: (newChat) => set(state => {
+        // Check if chat already exists to prevent duplicates
         const chatExists = state.chats.some(chat => chat._id === newChat._id);
         if (chatExists) return state;
+        
         return { chats: [newChat, ...state.chats] };
       }),
 
+      updateChat: (chatId, updatedChat) => set(state => ({
+        chats: state.chats.map(chat => 
+          chat._id === chatId ? { ...chat, ...updatedChat } : chat
+        )
+      })),
+
       updateChatLastMessage: (chatId, message) => set(state => ({
-        chats: state.chats
-          .map(chat => 
-            chat._id === chatId 
-              ? { ...chat, lastMessage: message, updatedAt: new Date() }
-              : chat
-          )
-          .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)) // Sort by most recent
+        chats: state.chats.map(chat => 
+          chat._id === chatId 
+            ? { ...chat, lastMessage: message, updatedAt: new Date() }
+            : chat
+        ).sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)) // Sort by most recent
       })),
       
       setActiveChatId: (chatId) => set({ activeChatId: chatId }),
       
-      // ✅ FIX: allow array OR updater function
-      setMessages: (chatId, updater) => set(state => {
-        const currentMessages = state.messages[chatId] || [];
-        const newMessages = 
-          typeof updater === "function" 
-            ? updater(currentMessages) 
-            : updater;
-
-        return {
-          messages: { ...state.messages, [chatId]: newMessages }
-        };
-      }),
+      setMessages: (chatId, messageList) => set(state => ({
+        messages: { ...state.messages, [chatId]: messageList }
+      })),
       
       addMessage: (chatId, message) => set(state => {
         const currentMessages = state.messages[chatId] || [];
+        // Check if message already exists to prevent duplicates
         const messageExists = currentMessages.some(msg => msg._id === message._id);
         if (messageExists) return state;
         
@@ -132,4 +136,3 @@ const useStore = create(
 );
 
 export default useStore;
-
