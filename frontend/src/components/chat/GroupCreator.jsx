@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/axios';
-import useStore from '../../store/useStore';
 
 export default function GroupCreator({ onClose, onGroupCreated }) {
-  const { addChat, setActiveChatId } = useStore();
   const [step, setStep] = useState(1); // 1: search users, 2: create group
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -12,7 +10,7 @@ export default function GroupCreator({ onClose, onGroupCreated }) {
   const [isSearching, setIsSearching] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  // Search users
+  // 🔎 Search users
   useEffect(() => {
     const searchUsers = async () => {
       if (!searchQuery.trim()) {
@@ -22,7 +20,9 @@ export default function GroupCreator({ onClose, onGroupCreated }) {
 
       setIsSearching(true);
       try {
-        const { data } = await api.get(`/api/users/search?q=${encodeURIComponent(searchQuery)}`);
+        const { data } = await api.get(
+          `/api/users/search?q=${encodeURIComponent(searchQuery)}`
+        );
         setSearchResults(data);
       } catch (error) {
         console.error('Search failed:', error);
@@ -37,10 +37,10 @@ export default function GroupCreator({ onClose, onGroupCreated }) {
   }, [searchQuery]);
 
   const toggleUser = (user) => {
-    setSelectedUsers(prev => {
-      const exists = prev.find(u => u._id === user._id);
+    setSelectedUsers((prev) => {
+      const exists = prev.find((u) => u._id === user._id);
       if (exists) {
-        return prev.filter(u => u._id !== user._id);
+        return prev.filter((u) => u._id !== user._id);
       } else {
         return [...prev, user];
       }
@@ -48,18 +48,20 @@ export default function GroupCreator({ onClose, onGroupCreated }) {
   };
 
   const createGroup = async () => {
-    if (!groupName.trim() || selectedUsers.length === 0) return;
-    
+    if (!groupName.trim() || selectedUsers.length < 2) {
+      alert('Please select at least 2 members for a group chat.');
+      return;
+    }
+
     setCreating(true);
     try {
       const { data } = await api.post('/api/chats', {
         isGroup: true,
         name: groupName.trim(),
-        memberIds: selectedUsers.map(u => u._id)
+        memberIds: selectedUsers.map((u) => u._id),
       });
 
-      addChat(data);
-      setActiveChatId(data._id);
+      // Let Sidebar handle store updates
       onGroupCreated?.(data);
       onClose();
     } catch (error) {
@@ -104,9 +106,11 @@ export default function GroupCreator({ onClose, onGroupCreated }) {
             {/* Selected Users */}
             {selectedUsers.length > 0 && (
               <div className="mb-4">
-                <div className="text-sm font-medium mb-2">Selected ({selectedUsers.length})</div>
+                <div className="text-sm font-medium mb-2">
+                  Selected ({selectedUsers.length})
+                </div>
                 <div className="flex flex-wrap gap-2">
-                  {selectedUsers.map(user => (
+                  {selectedUsers.map((user) => (
                     <div
                       key={user._id}
                       className="flex items-center gap-2 bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 px-2 py-1 rounded-full text-sm"
@@ -128,28 +132,38 @@ export default function GroupCreator({ onClose, onGroupCreated }) {
             <div className="flex-1 overflow-y-auto mb-4">
               {searchResults.length > 0 ? (
                 <div className="space-y-1">
-                  {searchResults.map(user => {
-                    const isSelected = selectedUsers.find(u => u._id === user._id);
+                  {searchResults.map((user) => {
+                    const isSelected = selectedUsers.find(
+                      (u) => u._id === user._id
+                    );
                     return (
                       <button
                         key={user._id}
                         onClick={() => toggleUser(user)}
                         className={`w-full p-3 text-left rounded-lg flex items-center gap-3 transition-colors ${
-                          isSelected 
-                            ? 'bg-brand-100 dark:bg-brand-900/30 border border-brand-300 dark:border-brand-700' 
+                          isSelected
+                            ? 'bg-brand-100 dark:bg-brand-900/30 border border-brand-300 dark:border-brand-700'
                             : 'hover:bg-gray-50 dark:hover:bg-gray-800 border border-transparent'
                         }`}
                       >
                         <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center text-sm font-semibold">
                           {user.avatarUrl ? (
-                            <img src={user.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+                            <img
+                              src={user.avatarUrl}
+                              alt=""
+                              className="w-full h-full rounded-full object-cover"
+                            />
                           ) : (
                             user.name[0]?.toUpperCase()
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm truncate">{user.name}</div>
-                          <div className="text-xs text-gray-500 truncate">{user.email}</div>
+                          <div className="font-medium text-sm truncate">
+                            {user.name}
+                          </div>
+                          <div className="text-xs text-gray-500 truncate">
+                            {user.email}
+                          </div>
                         </div>
                         {isSelected && (
                           <div className="text-brand-500 text-lg">✓</div>
@@ -172,8 +186,8 @@ export default function GroupCreator({ onClose, onGroupCreated }) {
             {/* Next Button */}
             <button
               onClick={() => setStep(2)}
-              disabled={selectedUsers.length === 0}
-              className="btn w-full disabled:opacity-50"
+              disabled={selectedUsers.length < 2}
+              className="w-full py-2 px-3 bg-brand-500 text-white rounded-lg hover:opacity-90 text-sm font-medium disabled:opacity-50"
             >
               Next ({selectedUsers.length} selected)
             </button>
@@ -182,26 +196,34 @@ export default function GroupCreator({ onClose, onGroupCreated }) {
           <>
             {/* Group Name Input */}
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Group Name</label>
+              <label className="block text-sm font-medium mb-2">
+                Group Name
+              </label>
               <input
                 type="text"
                 placeholder="Enter group name..."
-                className="input"
+                className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 value={groupName}
                 onChange={(e) => setGroupName(e.target.value)}
                 maxLength={50}
               />
             </div>
 
-            {/* Selected Members Summary */}
+            {/* Members Summary */}
             <div className="mb-4">
-              <div className="text-sm font-medium mb-2">Members ({selectedUsers.length})</div>
+              <div className="text-sm font-medium mb-2">
+                Members ({selectedUsers.length})
+              </div>
               <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 max-h-32 overflow-y-auto">
-                {selectedUsers.map(user => (
+                {selectedUsers.map((user) => (
                   <div key={user._id} className="flex items-center gap-2 py-1">
                     <div className="w-6 h-6 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center text-xs font-semibold">
                       {user.avatarUrl ? (
-                        <img src={user.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+                        <img
+                          src={user.avatarUrl}
+                          alt=""
+                          className="w-full h-full rounded-full object-cover"
+                        />
                       ) : (
                         user.name[0]?.toUpperCase()
                       )}
@@ -216,15 +238,15 @@ export default function GroupCreator({ onClose, onGroupCreated }) {
             <div className="flex gap-2">
               <button
                 onClick={() => setStep(1)}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
                 disabled={creating}
               >
                 Back
               </button>
               <button
                 onClick={createGroup}
-                disabled={!groupName.trim() || selectedUsers.length === 0 || creating}
-                className="flex-1 btn disabled:opacity-50"
+                disabled={!groupName.trim() || selectedUsers.length < 2 || creating}
+                className="flex-1 py-2 px-3 bg-brand-500 text-white rounded-lg hover:opacity-90 text-sm font-medium disabled:opacity-50"
               >
                 {creating ? 'Creating...' : 'Create Group'}
               </button>
